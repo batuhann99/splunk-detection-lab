@@ -1,1 +1,3 @@
-
+index=main sourcetype=csv attack_type=SensitiveFile
+| table timestamp src_ip uri status_code severity
+| sort timestamp
