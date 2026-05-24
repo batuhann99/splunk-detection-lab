@@ -1,1 +1,4 @@
-
+index=main sourcetype=csv attack_type=BruteForce
+| stats count by src_ip
+| where count > 5
+| sort -count
