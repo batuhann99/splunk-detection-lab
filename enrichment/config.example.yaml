@@ -1,0 +1,9 @@
+# config.example.yaml
+# Copy this file to config.yaml and fill in your API keys
+# Never commit config.yaml to GitHub!
+
+virustotal:
+  api_key: "YOUR_VIRUSTOTAL_API_KEY"
+
+abuseipdb:
+  api_key: "YOUR_ABUSEIPDB_API_KEY"
