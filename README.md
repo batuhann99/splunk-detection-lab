@@ -1,12 +1,12 @@
 # 🔍 Splunk Detection Lab
 
-A hands-on SIEM detection engineering project built on Splunk Cloud. Real attack scenarios, custom SPL detection rules, and Python-based IOC enrichment — designed to simulate a real SOC analyst workflow.
+A hands-on SIEM detection engineering project built on Splunk Cloud. Real attack scenarios, custom SPL detection rules, Python-based IOC enrichment, and a fully operational SOC dashboard — designed to simulate a real SOC analyst workflow.
 
 ---
 
 ## 📌 Project Overview
 
-This project demonstrates end-to-end detection engineering using Splunk Cloud as the SIEM platform. Three realistic attack log datasets were created and ingested, covering web application attacks, Windows authentication events, and network-level threats. Custom SPL rules were written to detect each attack pattern.
+This project demonstrates end-to-end detection engineering using Splunk Cloud as the SIEM platform. Three realistic attack log datasets were created and ingested, covering web application attacks, Windows authentication events, and network-level threats. Custom SPL detection rules, scheduled alerts, a Python IOC enrichment script, and a multi-panel SOC dashboard were built on top of this data.
 
 ---
 
@@ -18,7 +18,7 @@ This project demonstrates end-to-end detection engineering using Splunk Cloud as
 | SPL | Detection rule language |
 | Python 3 | IOC enrichment scripting |
 | VirusTotal API | IP/hash reputation lookup |
-| AbuseIPDB API | IP abuse scoring |
+| AbuseIPDB API | IP abuse confidence scoring |
 | GitHub | Version control & documentation |
 
 ---
@@ -35,7 +35,10 @@ splunk-detection-lab/
 ├── enrichment/
 │   ├── ioc_enricher.py
 │   ├── requirements.txt
-│   └── config.example.yaml
+│   ├── config.example.yaml
+│   └── sample_output/
+│       ├── ioc_results.json
+│       └── ioc_results.csv
 ├── dashboards/
 │   └── soc_dashboard.xml
 ├── data/
@@ -125,7 +128,7 @@ index=main sourcetype=csv severity=CRITICAL
 ### 3. Sensitive File Access Detection
 **File:** `detections/sensitive_file_access.spl`
 
-Detects successful HTTP access to sensitive files that should not be publicly reachable.
+Detects successful HTTP access to sensitive files.
 
 ```spl
 index=main sourcetype=csv attack_type=SensitiveFile
@@ -140,7 +143,7 @@ index=main sourcetype=csv attack_type=SensitiveFile
 ### 4. Backdoor User Creation Detection
 **File:** `detections/backdoor_user_creation.spl`
 
-Detects execution of `net user /add` command on domain controllers — a classic post-exploitation persistence technique.
+Detects execution of `net user /add` command on domain controllers.
 
 ```spl
 index=main source=windows_auth_logs.csv
@@ -148,24 +151,87 @@ index=main source=windows_auth_logs.csv
 | table timestamp host user failure_reason
 ```
 
-**Result:** `administrator` account on `dc01-windows` executed `net user /add backdoor Passw0rd!` at `2024-01-15 08:11:00`.
+**Result:** `administrator` on `dc01-windows` executed `net user /add backdoor Passw0rd!`
 
 ---
 
-## 🔄 Project Roadmap
+## 🔔 Splunk Alerts
+
+Four scheduled alerts configured to run every hour:
+
+| Alert | Severity | Schedule |
+|-------|----------|----------|
+| DETECT - Brute Force Attack | High | Hourly |
+| DETECT - Critical Severity Events | Critical | Hourly |
+| DETECT - Sensitive File Access | High | Hourly |
+| DETECT - Backdoor User Creation | Critical | Hourly |
+
+---
+
+## 🐍 Python IOC Enrichment
+
+**File:** `enrichment/ioc_enricher.py`
+
+Automatically enriches attacker IPs using VirusTotal and AbuseIPDB APIs.
+
+```
+Input  : Attacker IPs from Splunk detection rules
+Output : Verdict (MALICIOUS / SUSPICIOUS / CLEAN) + JSON + CSV report
+```
+
+### Sample Results
+
+| IP | VT Score | Abuse Score | Country | ISP | Verdict |
+|----|----------|-------------|---------|-----|---------|
+| 185.220.101.45 | 17/91 | 100% | DE | Tor Exit Node | **MALICIOUS** |
+| 45.33.32.156 | 4/91 | 12% | US | Linode | **SUSPICIOUS** |
+| 203.0.113.42 | 0/91 | 0% | — | — | CLEAN |
+| 198.51.100.77 | 0/91 | 0% | — | — | CLEAN |
+| 91.108.4.100 | 0/91 | 0% | NL | Telegram | CLEAN |
+
+> **Key Finding:** `185.220.101.45` (SQLi attacker) is a confirmed Tor Exit Node with 100% abuse confidence score and flagged by 17 VirusTotal engines.
+
+### Usage
+
+```bash
+pip install -r requirements.txt
+python ioc_enricher.py
+```
+
+---
+
+## 📈 SOC Dashboard
+
+**File:** `dashboards/soc_dashboard.xml`
+
+Multi-panel dark-theme dashboard with 8 panels:
+
+- **KPI Row** — Total Events (128), Critical Events (22), Brute Force Attempts (13), Unique Attacker IPs (12)
+- **Attack Timeline** — Stacked column chart by severity over time
+- **Attack Type Distribution** — Pie chart across all attack categories
+- **Top Attacker IPs** — Bar chart of most active threat actors
+- **Severity Breakdown** — Pie chart (CRITICAL / HIGH / MEDIUM / LOW)
+- **Brute Force Top Sources** — Table with heatmap and risk scoring
+- **Sensitive File Access** — Table of successful sensitive file grabs
+- **Windows Auth Events** — Bar chart by event type
+- **Recent Critical Events** — Live table of latest critical alerts
+
+---
+
+## ✅ Project Roadmap
 
 - [x] Splunk Cloud setup
-- [x] Attack log datasets created and ingested
-- [x] SPL detection rules written and tested
-- [ ] Splunk Alerts configured
-- [ ] Python IOC enrichment script (VirusTotal + AbuseIPDB)
-- [ ] SOC Dashboard built
-- [ ] Full documentation and writeup
+- [x] Attack log datasets created and ingested (3 sources, 128 events)
+- [x] SPL detection rules written and tested (4 rules)
+- [x] Splunk Alerts configured (4 alerts, hourly scheduled)
+- [x] Python IOC enrichment script (VirusTotal + AbuseIPDB)
+- [x] SOC Dashboard built (8 panels)
+- [x] Full documentation and GitHub setup
 
 ---
 
 ## 👤 Author
 
-**Batuhan**
+**Batuhan Akkurt**  
 Blue Team / SOC Analyst  
-[GitHub](https://github.com/batuhann99) • [LinkedIn](#)
+[GitHub](https://github.com/batuhann99)
