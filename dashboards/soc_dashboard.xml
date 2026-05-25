@@ -1,0 +1,198 @@
+<dashboard version="1.1" theme="dark">
+  <label>SOC Detection Dashboard</label>
+  <description>Real-time security monitoring dashboard for Splunk Detection Lab</description>
+
+  <!-- ── Row 1: KPI Summary ── -->
+  <row>
+    <panel>
+      <single>
+        <title>Total Events</title>
+        <search>
+          <query>index=main sourcetype=csv | stats count</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Critical Events</title>
+        <search>
+          <query>index=main sourcetype=csv severity=CRITICAL | stats count</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,5,10]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Brute Force Attempts</title>
+        <search>
+          <query>index=main sourcetype=csv attack_type=BruteForce | stats count</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,5,10]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Unique Attacker IPs</title>
+        <search>
+          <query>index=main sourcetype=csv severity!=Normal | stats dc(src_ip) as unique_ips</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,3,6]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+
+  <!-- ── Row 2: Attack Timeline + Attack Distribution ── -->
+  <row>
+    <panel>
+      <chart>
+        <title>Attack Timeline</title>
+        <search>
+          <query>index=main sourcetype=csv severity!=Normal AND severity!=LOW
+| timechart count by severity</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.fieldColors">{"CRITICAL": "0xdc4e41", "HIGH": "0xf1813f", "MEDIUM": "0xf8be34"}</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Attack Type Distribution</title>
+        <search>
+          <query>index=main sourcetype=csv severity!=Normal AND severity!=LOW
+| stats count by attack_type
+| sort -count</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ── Row 3: Top Attacker IPs + Severity Breakdown ── -->
+  <row>
+    <panel>
+      <chart>
+        <title>Top Attacker IPs</title>
+        <search>
+          <query>index=main sourcetype=csv severity!=Normal AND severity!=LOW
+| stats count by src_ip
+| sort -count
+| head 10</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="charting.chart.showDataLabels">all</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Severity Breakdown</title>
+        <search>
+          <query>index=main sourcetype=csv
+| stats count by severity
+| sort -count</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.fieldColors">{"CRITICAL": "0xdc4e41", "HIGH": "0xf1813f", "MEDIUM": "0xf8be34", "LOW": "0x53a051"}</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ── Row 4: Brute Force + Sensitive File Access ── -->
+  <row>
+    <panel>
+      <table>
+        <title>Brute Force Attacks — Top Sources</title>
+        <search>
+          <query>index=main sourcetype=csv attack_type=BruteForce
+| stats count as attempts by src_ip
+| where attempts > 3
+| sort -attempts
+| eval risk=if(attempts>10,"CRITICAL",if(attempts>5,"HIGH","MEDIUM"))</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="dataOverlayMode">heatmap</option>
+        <option name="rowNumbers">true</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Sensitive File Access Attempts</title>
+        <search>
+          <query>index=main sourcetype=csv attack_type=SensitiveFile
+| table timestamp src_ip uri status_code severity
+| sort timestamp</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="rowNumbers">true</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ── Row 5: Windows Auth Events + Recent Critical ── -->
+  <row>
+    <panel>
+      <chart>
+        <title>Windows Auth Events by Type</title>
+        <search>
+          <query>index=main source=windows_auth_logs.csv
+| stats count by event_type
+| sort -count</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.legend.placement">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <table>
+        <title>Recent Critical Events</title>
+        <search>
+          <query>index=main sourcetype=csv severity=CRITICAL
+| table timestamp src_ip attack_type uri host
+| sort -timestamp
+| head 15</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="rowNumbers">true</option>
+        <option name="dataOverlayMode">heatmap</option>
+      </table>
+    </panel>
+  </row>
+
+</dashboard>
